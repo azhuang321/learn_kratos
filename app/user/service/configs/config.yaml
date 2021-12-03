@@ -1,0 +1,51 @@
+project:
+  name: user_service
+  version: latest
+  mode: dev
+
+server:
+  http:
+    addr: 0.0.0.0:8000
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9000
+    timeout: 1s
+
+data:
+  database:
+    driver: mysql
+    source: root:123123@tcp(127.0.0.1:3306)/mychat
+  redis:
+    addr: 127.0.0.1:6379
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+
+log:
+  log_path: "logs/"
+  max_size: 1
+  max_backups: 5
+  max_age: 1
+  compress: false
+
+nacos:
+  client_config:
+    namespace_id: "d47a8dad-2d8a-4f2a-a179-186228ead0e9"
+    timeout_ms: 5000
+    not_load_cache_at_start: true
+    update_cache_when_empty: true
+    log_dir: "logs/nacos/log"
+    cache_dir: "logs/nacos/cache"
+    rotate_time: "1h"
+    max_age: 3
+    log_level: "error"
+    username: "nacos"
+    password: "nacos"
+  server_configs:
+    -
+      ip_addr: "127.0.0.1"
+      context_path: "/nacos"
+      port: 8848
+      scheme: "http"
+  node_config:
+    data_id: "user-srv.json"
+    group: "dev"

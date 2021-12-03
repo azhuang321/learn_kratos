@@ -1,0 +1,36 @@
+syntax = "proto3";
+package app.user.service.api;
+
+option go_package = "chat/app/user/service/internal/conf;conf";
+
+message Nacos {
+  message ClientConfig {
+    string namespace_id = 1;
+    uint64 timeout_ms = 2;
+    bool not_load_cache_at_start = 3;
+    bool update_cache_when_empty = 4;
+    string log_dir = 5;
+    string cache_dir = 6;
+    string rotate_time = 7;
+    int64 max_age = 8;
+    string log_level = 9;
+    string username = 10;
+    string password = 11;
+  }
+  ClientConfig client_config = 1;
+
+  message ServerConfigs {
+    string ip_addr = 1;
+    string context_path = 2;
+    uint64 port = 3;
+    string scheme = 4;
+  }
+  repeated ServerConfigs server_configs = 2;
+
+  message NodeConfig {
+    string data_id = 1;
+    string group = 2;
+  }
+
+  NodeConfig node_config = 3;
+}

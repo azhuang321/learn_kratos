@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package api.group.service.v1;
+option go_package = "api/group/service/v1;v1";
+
+import "google/api/annotations.proto";
+
+service Group {
+    rpc GetGroupInfo(GetGroupInfoRequest) returns (GetGroupInfoResponse){
+        option (google.api.http) = {
+            // 定义一个 POST 接口，并且把 body 映射到 grpc
+            post: "/v1/groupInfo",
+            body: "*",
+        };
+    };
+}
+
+message GetGroupInfoRequest {
+    int64 id = 1;
+}
+
+message GetGroupInfoResponse {
+    int64 id = 1;
+    string group_name = 2;
+}
+
+

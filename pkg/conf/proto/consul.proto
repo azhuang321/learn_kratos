@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package kratos.api;
+
+option go_package = "chat/app/user/service/internal/conf;conf";
+
+message Consul {
+    string ip = 1;
+    uint64 port = 2;
+    string config_path = 3;
+}
