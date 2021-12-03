@@ -33,7 +33,6 @@ func (s *UserService) CreateUser(ctx context.Context, req *pb.CreateUserRequest)
 }
 
 func (s *UserService) UserGroupInfo(ctx context.Context, req *pb.UserGroupInfoRequest) (*pb.UserGroupInfoResponse, error) {
-
 	s.up.GetUserGroupInfo(ctx, &biz.User{})
 
 	return &pb.UserGroupInfoResponse{

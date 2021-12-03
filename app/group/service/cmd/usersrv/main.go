@@ -3,6 +3,13 @@ package main
 import (
 	v1 "chat/api/group/service/v1"
 	"flag"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/sdk/resource"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	"os"
 
 	"github.com/go-kratos/kratos/v2"
@@ -15,7 +22,7 @@ import (
 	"github.com/hashicorp/go-uuid"
 
 	"chat/app/group/service/internal/conf"
-	zaplog "chat/pkg/log"
+	zapLog "chat/pkg/log"
 )
 
 // go build -ldflags "-X main.Version=x.y.z"
@@ -74,9 +81,27 @@ func main() {
 		id += "-" + generateUUID
 	}
 
-	logger := zaplog.Logger(bc.Project.Mode, bc.Log.LogPath, int(bc.Log.MaxSize), int(bc.Log.MaxBackups), int(bc.Log.MaxSize), bc.Log.Compress)
+	logger := zapLog.Logger(bc.Project.Mode, bc.Log.LogPath, int(bc.Log.MaxSize), int(bc.Log.MaxBackups), int(bc.Log.MaxSize), bc.Log.Compress)
+	zapLogger := logger.(*zapLog.ZapLogger).Logger
+	logger = log.With(logger, "trace_id", tracing.TraceID())
+	logger = log.With(logger, "span_id", tracing.SpanID())
+	logger = log.With(logger, "ts", log.DefaultTimestamp)
+	logger = log.With(logger, "caller", log.DefaultCaller)
+	logger = log.With(logger, "service.id", id)
+	logger = log.With(logger, "service.name", Name)
+	logger = log.With(logger, "service.version", Version)
 
-	app, cleanup, err := initApp(bc.Server, bc.Data, logger, logger.(*zaplog.ZapLogger).Logger)
+	url := "http://127.0.0.1:14268/api/traces"
+	if os.Getenv("jaeger_url") != "" {
+		url = os.Getenv("jaeger_url")
+	}
+	err := setTracerProvider(url)
+	if err != nil {
+		logger.Log(log.LevelError, err)
+		return
+	}
+
+	app, cleanup, err := initApp(bc.Server, bc.Data, logger, zapLogger)
 	if err != nil {
 		panic(err)
 	}
@@ -85,4 +110,26 @@ func main() {
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
+}
+
+// set trace provider
+func setTracerProvider(url string) error {
+	// Create the Jaeger exporter
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(url)))
+	if err != nil {
+		return err
+	}
+	tp := tracesdk.NewTracerProvider(
+		// Set the sampling rate based on the parent span to 100%
+		tracesdk.WithSampler(tracesdk.ParentBased(tracesdk.TraceIDRatioBased(1.0))),
+		// Always be sure to batch in production.
+		tracesdk.WithBatcher(exp),
+		// Record information about this application in an Resource.
+		tracesdk.WithResource(resource.NewSchemaless(
+			semconv.ServiceNameKey.String(Name),
+			attribute.String("env", "dev"),
+		)),
+	)
+	otel.SetTracerProvider(tp)
+	return nil
 }

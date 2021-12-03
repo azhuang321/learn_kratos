@@ -3,7 +3,6 @@ package data
 import (
 	"chat/app/group/service/internal/conf"
 	"chat/app/group/service/internal/data/ent"
-	zaplog "chat/pkg/log"
 	"context"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
@@ -14,6 +13,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+	"go.uber.org/zap"
 )
 
 // ProviderSet is data providers.
@@ -32,14 +32,13 @@ func NewData(db *ent.Client, c *conf.Data, logger log.Logger) (*Data, func(), er
 	return &Data{db: db}, cleanup, nil
 }
 
-func NewEntClient(c *conf.Data, logger log.Logger) *ent.Client {
-	myLog := logger.(*zaplog.ZapLogger).Logger
+func NewEntClient(c *conf.Data, logger *zap.Logger) *ent.Client {
 	drv, err := sql.Open(
 		c.Database.Driver,
 		c.Database.Source,
 	)
 	sqlDrv := dialect.DebugWithContext(drv, func(ctx context.Context, i ...interface{}) {
-		myLog.Sugar().Info(i...)
+		logger.Sugar().Info(i...)
 		tracer := otel.Tracer("ent.")
 		kind := trace.SpanKindServer
 		_, span := tracer.Start(ctx,
@@ -54,10 +53,10 @@ func NewEntClient(c *conf.Data, logger log.Logger) *ent.Client {
 	client := ent.NewClient(ent.Driver(sqlDrv))
 	if err != nil {
 		fmt.Println(err)
-		myLog.Error("failed opening connection to sqlite: " + err.Error())
+		logger.Error("failed opening connection to sqlite: " + err.Error())
 	}
 	if err := client.Schema.Create(context.Background()); err != nil {
-		myLog.Error("failed creating schema resources:" + err.Error())
+		logger.Error("failed creating schema resources:" + err.Error())
 	}
 	return client
 }

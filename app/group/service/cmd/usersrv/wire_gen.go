@@ -21,16 +21,16 @@ import (
 
 // initApp init kratos application.
 func initApp(confServer *conf.Server, confData *conf.Data, logger log.Logger, zapLogger *zap.Logger) (*kratos.App, func(), error) {
-	client := data.NewEntClient(confData, logger)
+	client := data.NewEntClient(confData, zapLogger)
 	dataData, cleanup, err := data.NewData(client, confData, logger)
 	if err != nil {
 		return nil, nil, err
 	}
-	userRepo := data.NewGroupRepo(dataData, zapLogger)
-	userRepository := biz.NewGroupRepository(userRepo, zapLogger)
-	userService := service.NewUserService(userRepository, zapLogger)
-	grpcServer := server.NewGRPCServer(confServer, userService, logger)
-	httpServer := server.NewHTTPServer(confServer, userService, logger)
+	groupRepo := data.NewGroupRepo(dataData, zapLogger)
+	groupRepository := biz.NewGroupRepository(groupRepo, zapLogger)
+	groupService := service.NewUserService(groupRepository, zapLogger)
+	grpcServer := server.NewGRPCServer(confServer, groupService, logger)
+	httpServer := server.NewHTTPServer(confServer, groupService, logger)
 	registrar := registry.NewConsulRegistry(zapLogger)
 	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {

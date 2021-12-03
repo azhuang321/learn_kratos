@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
+//todo  是否应该使用 zap log  到日志收集环节再看
 type userRepo struct {
 	data *Data
 	log  *zap.Logger

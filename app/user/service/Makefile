@@ -49,7 +49,7 @@ ent:
 .PHONY: wire
 # wire
 wire:
-	wire gen cmd/usersrv/main.go cmd/usersrv/wire.go
+	wire gen cmd/user/main.go cmd/user/wire.go
 
 .PHONY: all
 # generate all
