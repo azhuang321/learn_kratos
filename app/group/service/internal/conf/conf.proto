@@ -1,7 +1,7 @@
 syntax = "proto3";
 package kratos.api;
 
-option go_package = "chat/app/group/service/internal/conf;conf";
+option go_package = "chat/app/user/service/internal/conf;conf";
 
 import "google/protobuf/duration.proto";
 
@@ -9,7 +9,6 @@ message Bootstrap {
   Project project = 1;
   Server server = 2;
   Data data = 3;
-  Log log = 4;
 }
 
 message Project {
@@ -48,10 +47,17 @@ message Data {
   Redis redis = 2;
 }
 
-message Log {
-  string log_path = 1;
-  int32 max_size = 2;
-  int32 max_backups = 3;
-  int32 max_age = 4;
-  bool compress = 5;
+message Registry {
+  message Consul {
+    string address = 1;
+    string scheme = 2;
+  }
+  Consul consul = 1;
+}
+
+message Trace {
+  message Jaeger {
+    string url = 1;
+  }
+  Jaeger jaeger = 1;
 }

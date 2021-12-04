@@ -2,8 +2,9 @@ package main
 
 import (
 	v1 "chat/api/group/service/v1"
+	myConf "chat/pkg/conf"
+	logConf "chat/pkg/log/conf"
 	"flag"
-	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/jaeger"
@@ -13,8 +14,6 @@ import (
 	"os"
 
 	"github.com/go-kratos/kratos/v2"
-	"github.com/go-kratos/kratos/v2/config"
-	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
@@ -25,27 +24,27 @@ import (
 	zapLog "chat/pkg/log"
 )
 
-// go build -ldflags "-X main.Version=x.y.z"
+// go build -ldflags "-X main.version=x.y.z"
 var (
-	// Name is the name of the compiled software.
-	Name string
-	// Version is the version of the compiled software.
-	Version string
-	// flagconf is the config flag.
-	flagconf string
+	// name is the name of the compiled software.
+	name string
+	// version is the version of the compiled software.
+	version string
+	// flagConf is the config flag.
+	flagConf string
 
 	id, _ = os.Hostname()
 )
 
 func init() {
-	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
+	flag.StringVar(&flagConf, "conf", "../../configs", "config path, eg: -conf config.yaml")
 }
 
 func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r registry.Registrar) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
-		kratos.Name(Name),
-		kratos.Version(Version),
+		kratos.Name(name),
+		kratos.Version(version),
 		kratos.Metadata(map[string]string{}),
 		kratos.Logger(logger),
 		kratos.Server(
@@ -59,37 +58,22 @@ func newApp(logger log.Logger, gs *grpc.Server, hs *http.Server, r registry.Regi
 func main() {
 	flag.Parse()
 
-	c := config.New(
-		config.WithSource(
-			file.NewSource(flagconf),
-		),
-	)
-	defer c.Close()
-
-	if err := c.Load(); err != nil {
-		panic(err)
-	}
-
 	var bc conf.Bootstrap
-	if err := c.Scan(&bc); err != nil {
-		panic(err)
-	}
+	var rc conf.Registry
+	var lc logConf.Log
+	var tc conf.Trace
 
-	Name = v1.Group_ServiceDesc.ServiceName
-	Version = bc.Project.Version
+	myConf.NewConf(flagConf, &bc, &rc, &lc, &tc)
+
+	name = v1.Group_ServiceDesc.ServiceName
+	version = bc.Project.Version
 	if generateUUID, err := uuid.GenerateUUID(); err == nil {
 		id += "-" + generateUUID
 	}
 
-	logger := zapLog.Logger(bc.Project.Mode, bc.Log.LogPath, int(bc.Log.MaxSize), int(bc.Log.MaxBackups), int(bc.Log.MaxSize), bc.Log.Compress)
-	zapLogger := logger.(*zapLog.ZapLogger).Logger
-	logger = log.With(logger, "trace_id", tracing.TraceID())
-	logger = log.With(logger, "span_id", tracing.SpanID())
-	logger = log.With(logger, "ts", log.DefaultTimestamp)
-	logger = log.With(logger, "caller", log.DefaultCaller)
-	logger = log.With(logger, "service.id", id)
-	logger = log.With(logger, "service.name", Name)
-	logger = log.With(logger, "service.version", Version)
+	logger := zapLog.Logger(bc.Project.Mode, lc.ZapLog)
+	zapLogger := logger.GetZapLogger()
+	newLogger := logger.GetLogger(id, name, version)
 
 	url := "http://127.0.0.1:14268/api/traces"
 	if os.Getenv("jaeger_url") != "" {
@@ -101,7 +85,7 @@ func main() {
 		return
 	}
 
-	app, cleanup, err := initApp(bc.Server, bc.Data, logger, zapLogger)
+	app, cleanup, err := initApp(bc.Server, bc.Data, newLogger, zapLogger)
 	if err != nil {
 		panic(err)
 	}
@@ -126,7 +110,7 @@ func setTracerProvider(url string) error {
 		tracesdk.WithBatcher(exp),
 		// Record information about this application in an Resource.
 		tracesdk.WithResource(resource.NewSchemaless(
-			semconv.ServiceNameKey.String(Name),
+			semconv.ServiceNameKey.String(name),
 			attribute.String("env", "dev"),
 		)),
 	)

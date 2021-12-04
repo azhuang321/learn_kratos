@@ -12,6 +12,7 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
+	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/go-kratos/kratos/v2/selector/wrr"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	_ "github.com/go-sql-driver/mysql"
@@ -26,22 +27,22 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewEntClient, NewUserRepo, NewGroupService)
+var ProviderSet = wire.NewSet(NewData, NewEntClient, NewUserRepo, NewGroupClient, NewDiscovery)
 
 // Data .
 type Data struct {
-	db        *ent.Client
-	groupConn *grpc2.ClientConn
+	db *ent.Client
+	gc v1.GroupClient
 }
 
 // NewData .
-func NewData(db *ent.Client, groupConn *grpc2.ClientConn, c *conf.Data, logger log.Logger) (*Data, func(), error) {
+func NewData(db *ent.Client, gc *grpc2.ClientConn, c *conf.Data, logger log.Logger) (*Data, func(), error) {
 	cleanup := func() {
 		db.Close()
-		groupConn.Close()
+		gc.Close()
 		log.NewHelper(logger).Info("closing the data resources")
 	}
-	return &Data{db: db, groupConn: groupConn}, cleanup, nil
+	return &Data{db: db, gc: v1.NewGroupClient(gc)}, cleanup, nil
 }
 
 func NewEntClient(c *conf.Data, logger log.Logger) *ent.Client {
@@ -74,20 +75,14 @@ func NewEntClient(c *conf.Data, logger log.Logger) *ent.Client {
 	return client
 }
 
-func NewGroupService() *grpc2.ClientConn {
-	client, err := api.NewClient(api.DefaultConfig())
-	if err != nil {
-		panic(err)
-	}
-	dis := consul.New(client)
-
-	// new grpc client
+func NewGroupClient(r registry.Discovery) *grpc2.ClientConn {
 	conn, err := grpc.DialInsecure(context.Background(),
 		grpc.WithEndpoint("discovery:///"+v1.Group_ServiceDesc.ServiceName),
-		grpc.WithDiscovery(dis),
+		grpc.WithDiscovery(r),
+
 		grpc.WithMiddleware(
 			recovery.Recovery(),
-			tracing.Client(),
+			tracing.Client(), //todo 替换
 		),
 		grpc.WithTimeout(2*time.Second),
 		grpc.WithBalancerName(wrr.Name),
@@ -98,4 +93,16 @@ func NewGroupService() *grpc2.ClientConn {
 	}
 
 	return conn
+}
+
+func NewDiscovery(conf *conf.Registry) registry.Discovery {
+	c := api.DefaultConfig()
+	c.Address = conf.Consul.Address
+	c.Scheme = conf.Consul.Scheme
+	cli, err := api.NewClient(c)
+	if err != nil {
+		panic(err)
+	}
+	r := consul.New(cli, consul.WithHealthCheck(false))
+	return r
 }

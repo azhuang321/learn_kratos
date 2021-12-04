@@ -31,8 +31,7 @@ func (u userRepo) Create(ctx context.Context, user *biz.User) error {
 }
 
 func (u userRepo) GroupInfo(ctx context.Context, user *biz.User) error {
-	client := v1.NewGroupClient(u.data.groupConn)
-	reply, err := client.GetGroupInfo(ctx, &v1.GetGroupInfoRequest{Id: 1})
+	reply, err := u.data.gc.GetGroupInfo(ctx, &v1.GetGroupInfoRequest{Id: 1})
 	if err != nil {
 		u.log.Error(err.Error())
 		return err

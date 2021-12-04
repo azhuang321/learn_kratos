@@ -5,15 +5,18 @@ import (
 	"os"
 
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"chat/pkg/log/conf"
 )
 
 var _ log.Logger = (*ZapLogger)(nil)
 
 type ZapLogger struct {
-	Logger *zap.Logger
+	logger *zap.Logger
 	Sync   func() error
 }
 
@@ -31,7 +34,7 @@ func NewZapLogger(mode string, filePath string, maxSize, maxBackups, maxAge int,
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoderConfig.TimeKey = "time"
 	encoderConfig.LevelKey = "level"
-	encoderConfig.NameKey = "Logger"
+	encoderConfig.NameKey = "logger"
 	encoderConfig.CallerKey = "caller"
 	encoderConfig.MessageKey = "msg"
 	encoderConfig.StacktraceKey = "stack"
@@ -79,13 +82,13 @@ func NewZapLogger(mode string, filePath string, maxSize, maxBackups, maxAge int,
 	Logger := zap.New(core).WithOptions(zap.AddCaller())
 	zap.ReplaceGlobals(Logger)
 
-	return &ZapLogger{Logger: Logger, Sync: Logger.Sync}
+	return &ZapLogger{logger: Logger, Sync: Logger.Sync}
 }
 
 // Log Implementation of Logger interface
 func (l *ZapLogger) Log(level log.Level, keyVals ...interface{}) error {
 	if len(keyVals) == 0 || len(keyVals)%2 != 0 {
-		l.Logger.Warn(fmt.Sprint("Keyvalues must appear in pairs: ", keyVals))
+		l.logger.Warn(fmt.Sprint("Keyvalues must appear in pairs: ", keyVals))
 		return nil
 	}
 	// Zap.Field is used when keyVals pairs appear
@@ -95,18 +98,33 @@ func (l *ZapLogger) Log(level log.Level, keyVals ...interface{}) error {
 	}
 	switch level {
 	case log.LevelDebug:
-		l.Logger.Debug("", data...)
+		l.logger.Debug("", data...)
 	case log.LevelInfo:
-		l.Logger.Info("", data...)
+		l.logger.Info("", data...)
 	case log.LevelWarn:
-		l.Logger.Warn("", data...)
+		l.logger.Warn("", data...)
 	case log.LevelError:
-		l.Logger.Error("", data...)
+		l.logger.Error("", data...)
 	}
 	return nil
 }
 
-// Logger 配置zap日志,将zap日志库引入
-func Logger(mode, logPath string, maxSize, maxBackups, maxAge int, compress bool) log.Logger {
-	return NewZapLogger(mode, logPath, maxSize, maxBackups, maxAge, compress)
+func (l *ZapLogger) GetZapLogger() *zap.Logger {
+	return l.logger
+}
+
+func (l *ZapLogger) GetLogger(id, name, version string) log.Logger {
+	logger := interface{}(l).(log.Logger)
+	logger = log.With(logger, "trace_id", tracing.TraceID())
+	logger = log.With(logger, "span_id", tracing.SpanID())
+	logger = log.With(logger, "ts", log.DefaultTimestamp)
+	logger = log.With(logger, "caller", log.DefaultCaller)
+	logger = log.With(logger, "service.id", id)
+	logger = log.With(logger, "service.name", name)
+	logger = log.With(logger, "service.version", version)
+	return logger
+}
+
+func Logger(mode string, zapLog *conf.Log_ZapLog) *ZapLogger {
+	return NewZapLogger(mode, zapLog.LogPath, int(zapLog.MaxSize), int(zapLog.MaxBackups), int(zapLog.MaxAge), zapLog.Compress)
 }

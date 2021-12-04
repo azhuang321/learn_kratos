@@ -1,0 +1,15 @@
+syntax = "proto3";
+package pkg.log;
+
+option go_package = "chat/pkg/log;log";
+
+message Log {
+    message ZapLog {
+        string log_path = 1;
+        int32 max_size = 2;
+        int32 max_backups = 3;
+        int32 max_age = 4;
+        bool compress = 5;
+    }
+    ZapLog zap_log = 1;
+}
