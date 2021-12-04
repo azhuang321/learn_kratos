@@ -40,7 +40,7 @@ func NewData(db *ent.Client, gc *grpc2.ClientConn, c *conf.Data, logger log.Logg
 	cleanup := func() {
 		db.Close()
 		gc.Close()
-		log.NewHelper(logger).Info("closing the data resources")
+		fmt.Println("closing the data resources")
 	}
 	return &Data{db: db, gc: v1.NewGroupClient(gc)}, cleanup, nil
 }

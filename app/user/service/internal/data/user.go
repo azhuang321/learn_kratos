@@ -33,7 +33,7 @@ func (u userRepo) Create(ctx context.Context, user *biz.User) error {
 func (u userRepo) GroupInfo(ctx context.Context, user *biz.User) error {
 	reply, err := u.data.gc.GetGroupInfo(ctx, &v1.GetGroupInfoRequest{Id: 1})
 	if err != nil {
-		u.log.Error(err.Error())
+		u.log.Error(err.Error()) //todo  uberrate 测试出现错误
 		return err
 	}
 
