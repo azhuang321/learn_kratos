@@ -4,7 +4,8 @@ import (
 	v1 "chat/api/group/service/v1"
 	"chat/app/user/service/internal/biz"
 	"context"
-	"fmt"
+	sentinel "github.com/alibaba/sentinel-golang/api"
+	"github.com/go-kratos/kratos/v2/middleware/ratelimit"
 	"go.uber.org/zap"
 )
 
@@ -31,12 +32,18 @@ func (u userRepo) Create(ctx context.Context, user *biz.User) error {
 }
 
 func (u userRepo) GroupInfo(ctx context.Context, user *biz.User) error {
-	reply, err := u.data.gc.GetGroupInfo(ctx, &v1.GetGroupInfoRequest{Id: 1})
-	if err != nil {
-		u.log.Error(err.Error()) //todo  uberrate 测试出现错误
-		return err
+	e, b := sentinel.Entry("breaker_err_count")
+	if b != nil {
+		u.log.Error("breaker")
+		return ratelimit.ErrLimitExceed
+	} else {
+		_, err := u.data.gc.GetGroupInfo(ctx, &v1.GetGroupInfoRequest{Id: 1})
+		if err != nil {
+			u.log.Error(err.Error()) //todo  uberrate 测试出现错误
+			sentinel.TraceError(e, err)
+		}
+		e.Exit()
 	}
 
-	fmt.Println(reply)
 	return nil
 }
