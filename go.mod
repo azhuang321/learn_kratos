@@ -9,6 +9,7 @@ require (
 	github.com/go-kratos/aegis v0.1.1
 	github.com/go-kratos/kratos/contrib/config/consul/v2 v2.0.0-20211202033801-67161b62ebb6
 	github.com/go-kratos/kratos/contrib/config/nacos/v2 v2.0.0-20211202033801-67161b62ebb6
+	github.com/go-kratos/kratos/contrib/metrics/prometheus/v2 v2.0.0-20211204183355-63a7ffae0487
 	github.com/go-kratos/kratos/contrib/registry/consul/v2 v2.0.0-20211129025511-98fd40bcb49b
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20211129025511-98fd40bcb49b
 	github.com/go-kratos/kratos/v2 v2.1.2
@@ -19,6 +20,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.1
 	github.com/nacos-group/nacos-sdk-go v1.0.9
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
+	github.com/prometheus/client_golang v1.11.0
 	go.etcd.io/etcd/client/v3 v3.5.1
 	go.opentelemetry.io/otel v1.2.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.2.0

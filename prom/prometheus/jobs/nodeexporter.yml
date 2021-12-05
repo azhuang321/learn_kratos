@@ -1,0 +1,12 @@
+- targets:
+    - "127.127.127.127:9100"
+  labels:
+    hostname: Server
+- targets:
+    - "127.127.127.128:9100"
+  labels:
+    hostname: Server1
+- targets:
+    - "127.127.127.129:9100"
+  labels:
+    hostname: Server2

@@ -1,0 +1,24 @@
+scrape_configs:
+  - job_name: 'nodeexporter'
+    file_sd_configs:
+      - files:
+          - "/etc/prometheus/jobs/nodeexporter.yml"
+        refresh_interval: 5s
+
+  - job_name: 'cadvisor'
+    file_sd_configs:
+      - files:
+          - "/etc/prometheus/jobs/cadvisor.yml"
+        refresh_interval: 5s
+
+  - job_name: 'prometheus'
+    file_sd_configs:
+      - files:
+          - "/etc/prometheus/jobs/prometheus.yml"
+        refresh_interval: 5s
+
+  - job_name: 'pushgateway'
+    file_sd_configs:
+      - files:
+          - "/etc/prometheus/jobs/pushgateway.yml"
+        refresh_interval: 5s
