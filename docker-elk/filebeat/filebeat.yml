@@ -1,0 +1,18 @@
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths: # 需要收集的日志
+      - /var/log/app/**  # ** need high versiob filebeat can support recursive
+
+    fields: # 需要添加的字段
+      host: "{{inventory_hostname}}"
+      function: "xxx"
+    multiline:  # 多行匹配
+      match: after
+      negate: true  # pay attention the format
+      pattern: '^\[[0-9]{4}-[0-9]{2}-[0-9]{2}'   #\[
+    ignore_older: 24h
+    clean_inactive: 72h
+
+output.logstash:
+  hosts: ["logstash:5044"]
