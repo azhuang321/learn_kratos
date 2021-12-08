@@ -5,6 +5,7 @@ go 1.16
 require (
 	entgo.io/ent v0.9.1
 	github.com/alibaba/sentinel-golang v1.0.3
+	github.com/apache/rocketmq-client-go/v2 v2.1.0
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/go-kratos/aegis v0.1.1
 	github.com/go-kratos/kratos/contrib/config/consul/v2 v2.0.0-20211202033801-67161b62ebb6
